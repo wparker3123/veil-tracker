@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import {
     View,
@@ -11,6 +11,7 @@ import {
 
 export default function DayDetailsScreen() {
     const router = useRouter();
+    const { day } = useLocalSearchParams();
     const { date } = "2025-07-18"; // e.g. ?date=2025-07-18
 
     return (
@@ -21,7 +22,7 @@ export default function DayDetailsScreen() {
                 <Text style={styles.dateItem}>1</Text>
                 {/* … */}
             </View>
-
+            <Text style={styles.header}>{day}</Text>
             <Text style={styles.label}>Flow Intensity</Text>
             <View style={styles.inputPlaceholder}>
                 <Text>[Slider/Icon]</Text>

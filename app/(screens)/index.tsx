@@ -6,7 +6,7 @@ export default function TitleScreen() {
     const router = useRouter();
 
     useEffect(() => {
-        const t = setTimeout(() => router.replace('/signin'), 2000);
+        const t = setTimeout(() => router.replace('/signin'), 4000);
         return () => clearTimeout(t);
     }, []);
 

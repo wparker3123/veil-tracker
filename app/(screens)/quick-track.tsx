@@ -4,7 +4,7 @@ import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 
 export default function QuickTrackScreen() {
     const router = useRouter();
-    const [date, setDate] = useState('2025-07-18');
+    const [date, setDate] = useState(new Date().toLocaleDateString());
     const [intensity, setIntensity] = useState('');
     const [symptoms, setSymptoms] = useState('');
     const [notes, setNotes] = useState('');
