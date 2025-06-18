@@ -29,7 +29,15 @@ export default function MainScreen() {
             <Text>Selected date: {selectedDate}</Text>
             <View style={styles.calenderQuickView}>
                 <Calendar.List
-                    onCalendarDayPress={(dateId) => console.log(`Pressed ${dateId}`)}
+                    calendarMaxDateId={today}
+                    onCalendarDayPress={(day) =>
+                        router.push({
+                            pathname: '/day-details',
+                            params: {
+                                selected_date: day,
+                            }
+                        })
+                }
                 />
             </View>
             {/*<Button onPress={(e) => {*/}
@@ -52,6 +60,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#000',
         padding: 20,
         height: '30%',
+        paddingTop: '20%',
         // alignItems: 'center',
     },
     header: {
@@ -59,6 +68,7 @@ const styles = StyleSheet.create({
         fontSize: 32,
         marginBottom: 20,
         textAlign: 'center',
+        paddingLeft: 20,
         fontFamily: 'MonaspaceRadonWide',
     },
     calendarPlaceholder: {

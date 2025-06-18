@@ -1,4 +1,5 @@
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import dayjs from 'dayjs';
 import React from 'react';
 import {
     View,
@@ -11,18 +12,28 @@ import {
 
 export default function DayDetailsScreen() {
     const router = useRouter();
-    const { day } = useLocalSearchParams();
-    const { date } = "2025-07-18"; // e.g. ?date=2025-07-18
+    const { selected_date } = useLocalSearchParams();
 
+    const getSevenDayView = (date: string) => {
+        const current = dayjs(date);
+        return Array.from({ length: 7 }, (_, i) =>
+            current.add(i - 3, 'day').date()
+        );
+    }
+    const date = selected_date ? dayjs(String(selected_date)) : dayjs();
+    console.log(date);
+    const days = getSevenDayView(String (selected_date));
     return (
         <ScrollView style={styles.container}>
-            <Text style={styles.header}>July</Text>
+            <Text style={styles.header}>{date.format('MMMM')}</Text>
             <View style={styles.dateRow}>
-                <Text style={styles.dateItem}>30</Text>
-                <Text style={styles.dateItem}>1</Text>
-                {/* … */}
+                {days.map((day) => (
+                    <Text key={day} style={styles.dateItem}>
+                        {day}
+                    </Text>
+                ))}
             </View>
-            <Text style={styles.header}>{day}</Text>
+            <Text style={styles.header}>{selected_date}</Text>
             <Text style={styles.label}>Flow Intensity</Text>
             <View style={styles.inputPlaceholder}>
                 <Text>[Slider/Icon]</Text>
