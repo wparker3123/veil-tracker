@@ -7,13 +7,15 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Asset } from 'expo-asset';
 import {useState, useEffect} from "react";
+import initDB, {checkTables} from '@/utils/_db';
+import {SQLiteProvider} from "expo-sqlite";
 
 SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
     const [ready, setReady] = useState(false);
     const colorScheme = useColorScheme();
     const [fontsLoaded] = useFonts({
-        'MonaspaceRadon': require('../assets/fonts/MonaspaceRadon-WideRegular.otf'),
+        'MonaspaceRadonWide': require('../assets/fonts/MonaspaceRadon-WideRegular.otf'),
     });
 
     useEffect(() => {
@@ -23,6 +25,8 @@ export default function RootLayout() {
 
             // preload logo
             await Asset.loadAsync(require('../assets/images/logos/veil_logo.png'));
+
+            //await checkTables();
 
             // now hide splash and render your app
             await SplashScreen.hideAsync();
@@ -37,11 +41,13 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(screens)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
+        <SQLiteProvider databaseName={'veil.db'} onInit={initDB}>
+          <Stack>
+            <Stack.Screen name="(screens)" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+          <StatusBar style="auto" />
+        </SQLiteProvider>
     </ThemeProvider>
   );
 }

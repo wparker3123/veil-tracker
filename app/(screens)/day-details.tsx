@@ -1,50 +1,82 @@
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import dayjs from 'dayjs';
-import React from 'react';
+import React, {useEffect, useState} from 'react';
+import Slider from '@react-native-community/slider';
+import { Platform } from 'react-native';
+import {SymptomsPicker} from "@/components/SymptomsPicker";
+import {VeilText} from "@/components/VeilText";
 import {
     View,
-    Text,
     TextInput,
     Button,
     StyleSheet,
     ScrollView,
 } from 'react-native';
 
+
 export default function DayDetailsScreen() {
     const router = useRouter();
     const { selected_date } = useLocalSearchParams();
+    const [flowIntensity, setFlowIntensity] = useState(3);
+    const [days, setDays] = useState(Array);
+    const [date, setDate] = useState(dayjs())
+    const [symptoms, setSymptoms] = useState<Record<string, boolean>>({});
+
+    const toggleSymptom = (key: string) =>
+        setSymptoms(prev => ({ ...prev, [key]: !prev[key] }));
 
     const getSevenDayView = (date: string) => {
         const current = dayjs(date);
+        console.log("hello");
         return Array.from({ length: 7 }, (_, i) =>
             current.add(i - 3, 'day').date()
         );
     }
-    const date = selected_date ? dayjs(String(selected_date)) : dayjs();
-    console.log(date);
-    const days = getSevenDayView(String (selected_date));
+
+    useEffect(() => {
+        setDays(getSevenDayView(String (selected_date)));
+        if (selected_date) {
+            setDate(dayjs(String(selected_date)));
+        }
+    }, [selected_date]);
+
     return (
         <ScrollView style={styles.container}>
-            <Text style={styles.header}>{date.format('MMMM')}</Text>
+            <VeilText style={styles.header}>{date.format('MMMM')}</VeilText>
             <View style={styles.dateRow}>
                 {days.map((day) => (
-                    <Text key={day} style={styles.dateItem}>
+                    <VeilText key={day} style={styles.dateItem}>
                         {day}
-                    </Text>
+                    </VeilText>
                 ))}
             </View>
-            <Text style={styles.header}>{selected_date}</Text>
-            <Text style={styles.label}>Flow Intensity</Text>
-            <View style={styles.inputPlaceholder}>
-                <Text>[Slider/Icon]</Text>
-            </View>
+            <VeilText style={styles.header}>{selected_date}</VeilText>
+            <VeilText style={styles.label}>Flow Intensity</VeilText>
+            {
+                Platform.OS !== 'web' ?
+                    <View>
+                        <VeilText>{flowIntensity}</VeilText>
+                        <Slider
+                            minimumValue={1}
+                            maximumValue={5}
+                            step={1}
+                            value={flowIntensity}
+                            onValueChange={value => setFlowIntensity(value)}
+                            minimumTrackTintColor={'#f2a9a5'}
+                        />
+                    </View> :
+                    <View style={styles.inputPlaceholder}>
+                        <VeilText>[Slider/Icon]</VeilText>
+                    </View>
+            }
 
-            <Text style={styles.label}>Symptoms</Text>
-            <View style={styles.inputPlaceholder}>
-                <Text>[Slider/Icon]</Text>
-            </View>
+            <VeilText style={styles.label}>Symptoms</VeilText>
+            <SymptomsPicker
+                symptoms={symptoms}
+                toggleSymptom={toggleSymptom}
+            />
 
-            <Text style={styles.label}>Notes</Text>
+            <VeilText style={styles.label}>Notes</VeilText>
             <TextInput
                 style={[styles.input, { height: 120 }]}
                 multiline
@@ -57,37 +89,43 @@ export default function DayDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000', padding: 20 },
-    header:    {
-        color:        '#f2a9a5',
-        fontSize:     24,
+    container: {
+        flex: 1,
+        backgroundColor: '#1A1A1A',
+        padding: 20
+    },
+    header: {
+        paddingTop: 30,
+        color: '#f2a9a5',
+        fontSize: 24,
         marginBottom: 10,
-        textAlign:    'center',
+        textAlign: 'center',
+        fontFamily: "MonaSpaceRadonWide"
     },
-    dateRow:    {
-        flexDirection:   'row',
+    dateRow: {
+        flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom:   20,
+        marginBottom: 20,
     },
-    dateItem:    {
-        color:         '#fff',
-        padding:       10,
+    dateItem: {
+        color: '#fff',
+        padding: 10,
         backgroundColor: '#111',
-        borderRadius:  4,
+        borderRadius: 4,
     },
-    label:               { color: '#fff', marginTop: 15 },
+    label: {color: '#fff', marginTop: 15},
     inputPlaceholder: {
         backgroundColor: '#111',
-        padding:         15,
-        borderRadius:    4,
-        marginTop:       5,
-        alignItems:      'center',
+        padding: 15,
+        borderRadius: 4,
+        marginTop: 5,
+        alignItems: 'center',
     },
     input: {
         backgroundColor: '#111',
-        color:           '#fff',
-        padding:         10,
-        borderRadius:    4,
-        marginTop:       5,
+        color: '#fff',
+        padding: 10,
+        borderRadius: 4,
+        marginTop: 5,
     },
 });

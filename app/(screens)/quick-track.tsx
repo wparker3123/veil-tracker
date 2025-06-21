@@ -49,7 +49,7 @@ export default function QuickTrackScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000', padding: 20 },
+    container: { flex: 1, backgroundColor: '#1A1A1A', padding: 20 },
     label:     { color: '#fff', marginTop: 15 },
     input:     {
         backgroundColor: '#111',

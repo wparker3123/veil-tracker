@@ -7,7 +7,7 @@ export default function TitleScreen() {
     const router = useRouter();
 
     useEffect(() => {
-        const t = setTimeout(() => router.replace('/signin'), 4000);
+        const t = setTimeout(() => router.replace('/signin'), 1000);
         return () => clearTimeout(t);
     }, []);
 
@@ -26,7 +26,7 @@ export default function TitleScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#000',
+        backgroundColor: '#1A1A1A',
         justifyContent: 'center',
         alignItems: 'center',
     },
