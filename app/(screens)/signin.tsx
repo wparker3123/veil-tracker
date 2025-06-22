@@ -1,105 +1,156 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {View, StyleSheet, SafeAreaView, TouchableOpacity} from 'react-native';
 import {VeilText, VeilTextInput} from "@/components/VeilText";
+import { veilColors, veilFonts, veilSpacing } from '@/styles/VeilStyles';
+
+
+import {Provider as PaperProvider, MD3DarkTheme as DarkTheme} from 'react-native-paper';
+const theme = {
+    ...DarkTheme,
+    dark: true,
+    roundness: 12,
+    colors: {
+        ...DarkTheme.colors,
+        primary: veilColors.accent,
+        background: veilColors.background,
+        surface: veilColors.surface,
+        text: veilColors.text,
+        placeholder: '#AAA', // consider adding to veilColors if reused
+        outline: veilColors.outline,
+    },
+};
 
 export default function SignInScreen() {
     const router = useRouter();
     const [pin, setPin] = useState('');
+    const [displayed, setDisplayed] = useState('');
+    const fullText = 'welcome back to veil';
+
+    useEffect(() => {
+        let i = 0;
+        const interval = setInterval(() => {
+            if (i <= fullText.length) {
+                setDisplayed(fullText.slice(0, i));
+                i++;
+            } else {
+                clearInterval(interval);
+            }
+        }, 80);
+        return () => clearInterval(interval);
+    }, []);
 
     const onSubmit = () => {
-        if (pin.length === 6) router.replace('/main');
+        if (pin.length === 4) router.replace('/main');
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <VeilText style={styles.title}>Welcome{'\n'}to{'\n'}Veil</VeilText>
+        <PaperProvider theme={theme}>
+            <SafeAreaView style={styles.container}>
+                <View style={styles.inner}>
+                    <VeilText variant="titleLarge" style={styles.header}>
+                        {displayed}
+                    </VeilText>
 
-            <View style={styles.card}>
-                <VeilText style={styles.label}>Choose a 6-Digit PIN</VeilText>
-                <VeilTextInput
-                    style={styles.input}
-                    placeholder="Pin"
-                    placeholderTextColor="#AAA"
-                    secureTextEntry
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    value={pin}
-                    onChangeText={setPin}
-                />
+                    <View style={styles.card}>
+                        <VeilTextInput
+                            label="4-digit PIN"
+                            mode="flat"
+                            secureTextEntry
+                            keyboardType="number-pad"
+                            maxLength={4}
+                            value={pin}
+                            onChangeText={setPin}
+                            underlineColor="#444"
+                            activeUnderlineColor="#e8b4ac"
+                            style={styles.input}
+                            theme={{
+                                fonts: { bodyLarge: { ...DarkTheme.fonts.bodyLarge, fontFamily: "MonaspaceRadonWideExtraLight" } },
+                            }}
+                        />
 
-                <TouchableOpacity
-                    style={[styles.button, pin.length < 6 && styles.buttonDisabled]}
-                    onPress={onSubmit}
-                    disabled={pin.length < 6}
-                >
-                    <VeilText style={styles.buttonText}>Submit</VeilText>
-                </TouchableOpacity>
-            </View>
+                        <TouchableOpacity
+                            disabled={pin.length < 4}
+                            onPress={onSubmit}
+                            style={[
+                                styles.button,
+                                pin.length < 4 && { opacity: 0.5 },
+                            ]}
+                        >
+                            <VeilText variant="bodyMedium" style={styles.buttonText}>
+                                Submit
+                            </VeilText>
+                        </TouchableOpacity>
+                    </View>
 
-            <VeilText style={styles.footer}>
-                All sensitive data is stored locally on your device. Please choose a unique PIN to
-                protect your data from prying eyes.
-            </VeilText>
-        </SafeAreaView>
+                    <VeilText variant="bodyMedium" style={styles.footer}>
+                        All sensitive data is stored locally on your device. Choose a unique PIN to protect your data from prying eyes.
+                    </VeilText>
+                </View>
+            </SafeAreaView>
+        </PaperProvider>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1A1A1A',
-        padding: 24,
-        justifyContent: 'center',
+        backgroundColor: veilColors.background,
     },
-    title: {
-        color: '#f2a9a5',
-        fontSize: 56,
+    inner: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: veilSpacing.lg,
+        gap: veilSpacing.xl,
+    },
+    header: {
+        color: veilColors.accent,
         textAlign: 'center',
-        lineHeight: 64,
-        fontFamily: 'MonaspaceRadonWide',
-        marginBottom: 40,
+        fontSize: 20,
+        letterSpacing: 1,
+        opacity: 0.85,
+        textTransform: 'lowercase',
+        fontFamily: veilFonts.light,
     },
     card: {
-        backgroundColor: '#faf9f6',
-        borderRadius: 16,
-        padding: 24,
-    },
-    label: {
-        fontSize: 14,
-        color: '#333',
-        marginBottom: 8,
-        fontFamily: 'MonaspaceRadonWide',
+        width: '100%',
+        gap: veilSpacing.md,
+        padding: veilSpacing.lg,
+        backgroundColor: veilColors.surface,
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 3 },
+        elevation: 4,
     },
     input: {
-        backgroundColor: '#FFF',
+        backgroundColor: veilColors.surface,
         borderRadius: 8,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        fontSize: 18,
-        color: '#333',
-        marginBottom: 20,
+        paddingHorizontal: veilSpacing.md,
     },
     button: {
-        backgroundColor: '#f2a9a5',
-        borderRadius: 8,
-        paddingVertical: 14,
+        backgroundColor: veilColors.accentSoft,
+        borderRadius: 12,
+        paddingVertical: veilSpacing.sm + 2,
         alignItems: 'center',
-    },
-    buttonDisabled: {
-        opacity: 0.6,
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 2,
     },
     buttonText: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: '600',
-        textTransform: 'uppercase',
+        color: veilColors.background,
+        fontFamily: veilFonts.medium,
     },
     footer: {
-        color: '#888',
+        color: veilColors.textSecondary,
         fontSize: 12,
         textAlign: 'center',
-        marginTop: 24,
         lineHeight: 18,
+        paddingHorizontal: veilSpacing.lg,
+        marginTop: veilSpacing.sm + 4,
     },
 });

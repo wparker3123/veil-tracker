@@ -1,111 +1,173 @@
 import { useRouter } from 'expo-router';
-import React, {useState} from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Button } from 'react-native';
-//import {Calendar, CalendarList, Agenda} from 'react-native-calendars';
-import {Calendar, CalendarTheme, toDateId} from "@marceloterreiro/flash-calendar";
+import React, {useEffect, useState} from 'react';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import {Calendar, CalendarActiveDateRange, CalendarTheme, toDateId} from "@marceloterreiro/flash-calendar";
 import dayjs from 'dayjs';
 import { MaterialIcons } from '@expo/vector-icons';
+import { VeilText } from '@/components/VeilText';
+import { veilColors, veilFonts, veilSpacing } from '@/styles/VeilStyles';
+import { useSQLiteContext } from "expo-sqlite";
+import {getVeilData, TrackerEntry} from "@/utils/db";
+import {getDateRangesFromArray} from "@/utils/date";
 
 const flashTheme: CalendarTheme = {
-    // month header (“June 2025”)
     rowMonth: {
         content: {
-            textAlign: "center",
-            color: "#f2a9a5",
-            fontFamily: "MonaspaceRadonWide",
+            textAlign: 'center',
+            color: veilColors.accent,
+            fontFamily: veilFonts.regular,
         },
     },
-
-    // weekday header (“S M T W…”)
     rowWeek: {
         container: {
-            justifyContent: "space-around",
+            justifyContent: 'space-around',
             borderBottomWidth: 2,
-            borderColor: "#f2a9a5",
-            borderStyle: "dashed",
-        }
+            borderColor: veilColors.accent,
+            borderStyle: 'dashed',
+        },
     },
     itemWeekName: {
         content: {
-            color: "#faf9f6",
-            fontFamily: "MonaspaceRadonWide",
+            color: veilColors.text,
+            fontFamily: veilFonts.regular,
         },
     },
-
-    // each day cell
+    itemDayContainer: {
+        activeDayFiller: {
+            backgroundColor: 'transparent',
+        },
+    },
     itemDay: {
-        // default (idle) days
         idle: ({ isWeekend, isPressed }) => ({
             content: {
-                color: isWeekend && !isPressed ? "#ffffff99" : "#faf9f6",
-                fontFamily: "MonaspaceRadonWide",
+                color: isWeekend && !isPressed ? '#ffffff99' : veilColors.text,
+                fontFamily: veilFonts.regular,
             },
         }),
-        // today’s number
         today: () => ({
             content: {
-                color: "#f2a9a5",
-                fontFamily: "MonaspaceRadonWide",
+                color: veilColors.accent,
+                fontFamily: veilFonts.regular,
             },
         }),
-        // selected day
-        active: () => ({
-            content: {
-                color: "#1A1A1A",
-                fontFamily: "MonaspaceRadonWide",
-            },
+        active: ({ isStartOfRange, isEndOfRange, isDisabled, date }) => ({
             container: {
-                backgroundColor: "#f2a9a5",
+                backgroundColor: dayjs(date).isAfter(dayjs()) ? 'transparent' : veilColors.accent,
+                borderTopLeftRadius: isStartOfRange ? 4 : 0,
+                borderBottomLeftRadius: isStartOfRange ? 4 : 0,
+                borderTopRightRadius: isEndOfRange ? 4 : 0,
+                borderBottomRightRadius: isEndOfRange ? 4 : 0,
+                borderColor: veilColors.accent,
+                borderStyle: 'dashed',
+                borderWidth: dayjs(date).isAfter(dayjs()) ? 2 : 0,
+            },
+            content: {
+                color: isDisabled ? veilColors.disabledText : veilColors.text,
+                opacity: isDisabled ? 0.2 : 1,
+                fontFamily: veilFonts.regular,
             },
         }),
         disabled: () => ({
             content: {
-                fontFamily: "MonaspaceRadonWide",
-                color: "#ffffff99",
-                opacity: .2
-            }
-        })
+                fontFamily: veilFonts.regular,
+                color: veilColors.disabledText,
+                opacity: 0.2,
+            },
+        }),
     },
 };
+
 const getDisabledDays = () => {
     const disabledDates = [];
     const today = dayjs();
-    for (let i = 1; i <= 45; i++)  {
+    for (let i = 1; i <= 35; i++) {
         disabledDates.push(today.add(i, "day").format('YYYY-MM-DD'));
     }
     return disabledDates;
-}
+};
+
 export default function MainScreen() {
     const router = useRouter();
-    const daysUntil = 5; // placeholder
-    const today = toDateId(new Date());
+
     const disabledDates = getDisabledDays();
+    const db = useSQLiteContext();
+    const [veilData, setVeilData] = useState<TrackerEntry[]>([]);
+    const [userTrackedCycle, setUserTrackedCycle] = useState<CalendarActiveDateRange[]>([]);
+    const [predictedCycle, setPredictedCycle] = useState<CalendarActiveDateRange>({
+        startId: '2025-07-05',
+        endId: '2025-07-11',
+    });
+    const [daysUntil, setDaysUntil] = useState(0); // placeholder
+
+    useEffect(() => {
+        async function fetchData() {
+            try {
+                const data = await getVeilData(db);
+                setVeilData(data); // Update state
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        fetchData();
+    }, [db]);
+
+    useEffect(() => {
+        if (veilData.length > 0) {
+            const userInputtedDates = veilData.map(entry => entry.date);
+            setUserTrackedCycle(getDateRangesFromArray(userInputtedDates));
+        }
+
+        if (predictedCycle.startId && predictedCycle.endId) {
+            const diffInDays = Math.ceil(dayjs(predictedCycle.startId).diff(dayjs(), 'day', true));
+            if (diffInDays <= 0) {
+                setDaysUntil(diffInDays + 28); //TODO: put actual logic if cycle is already started
+            }
+            else {
+                setDaysUntil(diffInDays);
+            }
+        }
+    }, [veilData]);
+
 
     return (
         <View style={styles.container}>
-            <Text style={[styles.header, {color: '#faf9f6'}]}>Next Cycle in: </Text>
-            <Text style={styles.header}>{daysUntil} days</Text>
-            <View style={styles.calenderQuickView}>
+            <VeilText variant="titleLarge" style={styles.headingText}>
+                next cycle in:
+            </VeilText>
+            <VeilText variant="titleLarge" style={styles.countdownText}>
+                {daysUntil} days
+            </VeilText>
+
+            <View style={styles.calendarCard}>
                 <Calendar.List
                     calendarDisabledDateIds={disabledDates}
                     calendarMaxDateId={disabledDates.at(-1)}
                     calendarDayHeight={32}
+                    calendarActiveDateRanges={[
+                        ...userTrackedCycle,
+                        predictedCycle
+                    ]}
                     calendarRowHorizontalSpacing={12}
                     calendarRowVerticalSpacing={12}
                     onCalendarDayPress={(day) =>
                         router.push({
                             pathname: '/day-details',
-                            params: {
-                                selected_date: day,
-                            }
+                            params: { selected_date: day },
                         })
                     }
                     theme={flashTheme}
                 />
             </View>
+
             <TouchableOpacity
                 style={styles.fab}
-                onPress={() => router.push('/quick-track')}
+                onPress={() =>
+                    router.push({
+                    pathname: '/day-details',
+                    params: {
+                        selected_date: dayjs().format('YYYY-MM-DD'),
+                    },
+                })}
             >
                 <MaterialIcons name="add" size={32} color="#faf9f6" />
             </TouchableOpacity>
@@ -116,47 +178,56 @@ export default function MainScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1A1A1A',
-        padding: 20,
-        paddingTop: 120,
+        backgroundColor: veilColors.background,
+        padding: veilSpacing.lg,
+        paddingTop: 150,
         alignItems: 'center',
-        justifyContent: 'flex-start',
     },
-    header: {
-        color: '#f2a9a5',
-        fontSize: 32,
-        marginBottom: 20,
-        paddingLeft: 20,
+    headingText: {
+        color: veilColors.accent,
+        fontSize: 20,
+        letterSpacing: 1,
+        textTransform: 'lowercase',
+        opacity: 0.85,
         textAlign: 'center',
-        alignSelf: 'center',
-        fontFamily: 'MonaspaceRadonWide',
-        // fontWeight: 'bold',
+        fontFamily: veilFonts.medium,
+        marginBottom: veilSpacing.xs / 2,
     },
-    calenderQuickView: {
+    countdownText: {
+        color: veilColors.accent,
+        fontSize: 28,
+        fontFamily: veilFonts.bold,
+        marginBottom: veilSpacing.lg,
+        textAlign: 'center',
+    },
+    calendarCard: {
         width: '100%',
         height: 400,
-        backgroundColor: '#222',      // slightly lighter than the background
-        borderRadius: 12,             // smooth corners
-        padding: 12,                  // give the calendar some breathing room
+        marginTop: veilSpacing.xs,
+        backgroundColor: veilColors.surface,
+        borderRadius: 12,
+        padding: veilSpacing.md,
         justifyContent: 'center',
-        color: '#faf9f6',
-        // iOS shadow
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-
-        // Android shadow
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
         elevation: 4,
     },
     fab: {
-        marginTop: 20,
-        alignSelf: 'center',
-        backgroundColor: '#f2a9a5',
+        position: 'absolute',
+        bottom: veilSpacing.xl,
+        marginTop: veilSpacing.lg,
+        backgroundColor: veilColors.accent,
         width: 60,
         height: 60,
         borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 4,
     },
 });

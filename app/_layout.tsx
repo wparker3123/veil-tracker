@@ -7,7 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Asset } from 'expo-asset';
 import {useState, useEffect} from "react";
-import initDB, {checkTables} from '@/utils/_db';
+import initDB from '@/utils/db';
 import {SQLiteProvider} from "expo-sqlite";
 
 SplashScreen.preventAutoHideAsync();
@@ -16,6 +16,12 @@ export default function RootLayout() {
     const colorScheme = useColorScheme();
     const [fontsLoaded] = useFonts({
         'MonaspaceRadonWide': require('../assets/fonts/MonaspaceRadon-WideRegular.otf'),
+        'MonaspaceRadonWideBold': require('../assets/fonts/MonaspaceRadon-WideBold.otf'),
+        'MonaspaceRadonWideSemiBold': require('../assets/fonts/MonaspaceRadon-WideSemiBold.otf'),
+        'MonaspaceRadonWideItalic': require('../assets/fonts/MonaspaceRadon-WideItalic.otf'),
+        'MonaspaceRadonWideMedium': require('../assets/fonts/MonaspaceRadon-WideMedium.otf'),
+        'MonaspaceRadonWideLight': require('../assets/fonts/MonaspaceRadon-WideLight.otf'),
+        'MonaspaceRadonWideExtraLight': require('../assets/fonts/MonaspaceRadon-WideExtraLight.otf'),
     });
 
     useEffect(() => {

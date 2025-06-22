@@ -1,9 +1,13 @@
 import React from 'react';
-import {Text, StyleSheet, TextStyle, StyleProp, TextProps, TextInputProps, TextInput} from 'react-native';
+import {StyleSheet} from 'react-native';
+import { TextInput, TextInputProps, Text, TextProps } from 'react-native-paper';
+import {veilColors} from "@/styles/VeilStyles";
 
-export function VeilText (props: TextProps){
+export function VeilText (props: TextProps<any>){
+    const flattened = StyleSheet.flatten(props.style);
+    const fontFamily = flattened?.fontFamily ?? 'MonaspaceRadonWide';
     return (
-        <Text style={[styles.defaultStyle, props.style]}>
+        <Text style={[{fontFamily: fontFamily}, props.style]}>
             {props.children}
         </Text>
     );
@@ -11,7 +15,10 @@ export function VeilText (props: TextProps){
 
 export function VeilTextInput (props: TextInputProps){
     return (
-        <TextInput {...props} style={[styles.defaultStyle, props.style]}/>
+        <TextInput
+            {...props} style={[styles.defaultStyle, props.style]}
+            textColor={veilColors.text}
+        />
     );
 }
 
