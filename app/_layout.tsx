@@ -1,4 +1,3 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -9,6 +8,23 @@ import { Asset } from 'expo-asset';
 import {useState, useEffect} from "react";
 import initDB from '@/utils/db';
 import {SQLiteProvider} from "expo-sqlite";
+import {veilColors} from '@/styles/VeilStyles';
+import {Provider as PaperProvider, MD3DarkTheme as DarkTheme} from 'react-native-paper';
+
+const theme = {
+    ...DarkTheme,
+    dark: true,
+    roundness: 12,
+    colors: {
+        ...DarkTheme.colors,
+        primary: veilColors.accent,
+        background: veilColors.background,
+        surface: veilColors.surface,
+        text: veilColors.text,
+        placeholder: '#AAA', // consider adding to veilColors if reused
+        outline: veilColors.outline,
+    },
+};
 
 SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
@@ -26,15 +42,10 @@ export default function RootLayout() {
 
     useEffect(() => {
         async function prepare() {
-            // wait for fonts
             if (!fontsLoaded) return;
 
-            // preload logo
             await Asset.loadAsync(require('../assets/images/logos/veil_logo.png'));
 
-            //await checkTables();
-
-            // now hide splash and render your app
             await SplashScreen.hideAsync();
             setReady(true);
         }
@@ -46,14 +57,14 @@ export default function RootLayout() {
     }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <SQLiteProvider databaseName={'veil.db'} onInit={initDB}>
-          <Stack>
-            <Stack.Screen name="(screens)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
-        </SQLiteProvider>
-    </ThemeProvider>
+      <PaperProvider theme={theme}>
+          <SQLiteProvider databaseName={'veil.db'} onInit={initDB}>
+              <Stack>
+                  <Stack.Screen name="(screens)" options={{headerShown: false}}/>
+                  <Stack.Screen name="+not-found"/>
+              </Stack>
+              <StatusBar style="auto"/>
+          </SQLiteProvider>
+      </PaperProvider>
   );
 }

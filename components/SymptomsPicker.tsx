@@ -1,5 +1,8 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import {View, StyleSheet} from 'react-native';
+import {TouchableRipple} from 'react-native-paper';
+import {MaterialCommunityIcons} from '@expo/vector-icons';
+import {VeilText} from "@/components/VeilText";
+import {veilColors, veilSpacing} from "@/styles/VeilStyles";
 
 type Symptom = {
     key: string;
@@ -8,11 +11,11 @@ type Symptom = {
 };
 
 const SYMPTOMS: Symptom[] = [
-    { key: 'cramps',     iconName: 'emoticon-cry-outline',   label: 'Cramps'   },
-    { key: 'headache',   iconName: 'head-side-virus',        label: 'Headache' },
-    { key: 'fatigue',    iconName: 'sleep',                  label: 'Fatigue'  },
-    { key: 'bloating',   iconName: 'circle-slice-3',         label: 'Bloat'    },
-    { key: 'acne',       iconName: 'face-woman-profile',     label: 'Acne'     },
+    {key: 'cramps', iconName: 'pill', label: 'Cramps'},
+    {key: 'headache', iconName: 'brain', label: 'Headache'},
+    {key: 'fatigue', iconName: 'bed-empty', label: 'Fatigue'},
+    {key: 'bloating', iconName: 'stomach', label: 'Bloating'},
+    {key: 'acne', iconName: 'emoticon-sick-outline', label: 'Acne'},
 ];
 
 type Props = {
@@ -23,12 +26,11 @@ type Props = {
 export function SymptomsPicker({ symptoms, toggleSymptom }: Props) {
     return (
         <View style={styles.container}>
-            <Text style={styles.label}>Symptoms</Text>
             <View style={styles.row}>
-                {SYMPTOMS.map(({ key, iconName }) => {
+                {SYMPTOMS.map(({key, iconName, label}) => {
                     const active = !!symptoms[key];
                     return (
-                        <Pressable
+                        <TouchableRipple
                             key={key}
                             onPress={() => toggleSymptom(key)}
                             style={[
@@ -36,12 +38,16 @@ export function SymptomsPicker({ symptoms, toggleSymptom }: Props) {
                                 active && styles.buttonActive,
                             ]}
                         >
-                            <MaterialCommunityIcons
-                                name={iconName}
-                                size={28}
-                                color={active ? '#f2a9a5' : '#888'}
-                            />
-                        </Pressable>
+                            <View>
+                                <MaterialCommunityIcons
+                                    name={iconName}
+                                    size={28}
+                                    color={active ? veilColors.accent : veilColors.accentSoft}
+                                />
+                                <VeilText variant="labelSmall">{label}</VeilText>
+                            </View>
+
+                        </TouchableRipple>
                     );
                 })}
             </View>
@@ -53,15 +59,20 @@ const styles = StyleSheet.create({
     container: {
         marginVertical: 16,
     },
-    label: {
-        fontSize: 16,
-        marginBottom: 8,
-        color: '#faf9f6',
-        textAlign: 'center',
-    },
     row: {
         flexDirection: 'row',
-        justifyContent: 'center',
+        flexWrap: 'wrap',             // ← allow multi-row
+        justifyContent: 'space-around',
+        marginBottom: veilSpacing.md,
+    },
+    item: {
+        width: 60,                    // ← fixed width so 4–5 fit per row
+        alignItems: 'center',
+        marginVertical: veilSpacing.xs,
+    },
+    label: {
+        fontSize: 12,                 // ← shrink text a hair
+        textAlign: 'center',
     },
     button: {
         marginHorizontal: 8,
@@ -71,4 +82,7 @@ const styles = StyleSheet.create({
     buttonActive: {
         backgroundColor: 'rgba(242,169,165,0.3)',
     },
+    symptomLabel: {
+        color: veilColors.text,
+    }
 });

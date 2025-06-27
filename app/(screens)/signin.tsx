@@ -1,33 +1,33 @@
 import { useRouter } from 'expo-router';
 import React, {useEffect, useState} from 'react';
-import {View, StyleSheet, SafeAreaView, TouchableOpacity} from 'react-native';
+import {View, StyleSheet, SafeAreaView, TouchableOpacity, Platform} from 'react-native';
 import {VeilText, VeilTextInput} from "@/components/VeilText";
 import { veilColors, veilFonts, veilSpacing } from '@/styles/VeilStyles';
+import {HelperText, MD3DarkTheme as DarkTheme} from 'react-native-paper';
+import * as SecureStore from 'expo-secure-store';
+import {StarsBackground} from "@/components/StarsBackground";
+
+async function save(key: string, value: string) {
+    await SecureStore.setItemAsync(key, String(value));
+}
+
+async function getPin() {
+    return await SecureStore.getItemAsync("veil-pin");
+}
 
 
-import {Provider as PaperProvider, MD3DarkTheme as DarkTheme} from 'react-native-paper';
-const theme = {
-    ...DarkTheme,
-    dark: true,
-    roundness: 12,
-    colors: {
-        ...DarkTheme.colors,
-        primary: veilColors.accent,
-        background: veilColors.background,
-        surface: veilColors.surface,
-        text: veilColors.text,
-        placeholder: '#AAA', // consider adding to veilColors if reused
-        outline: veilColors.outline,
-    },
-};
 
 export default function SignInScreen() {
     const router = useRouter();
     const [pin, setPin] = useState('');
+    const [confirmPin, setConfirmPin] = useState('');
+    const [firstTimeUser, setFirstTimeUser] = useState(false);
     const [displayed, setDisplayed] = useState('');
-    const fullText = 'welcome back to veil';
 
-    useEffect(() => {
+    const [isError, setIsError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+
+    const showWelcomeMessage = (fullText: string) => {
         let i = 0;
         const interval = setInterval(() => {
             if (i <= fullText.length) {
@@ -38,71 +38,151 @@ export default function SignInScreen() {
             }
         }, 80);
         return () => clearInterval(interval);
+    }
+    useEffect(() => {
+        if (Platform.OS !== 'web') {
+            getPin().then((veilPin) => {
+                if (!veilPin) {
+                    setFirstTimeUser(true);
+                    showWelcomeMessage("welcome to veil");
+                } else {
+                    showWelcomeMessage('welcome back to veil');
+                }
+            });
+        } else {
+            setFirstTimeUser(true);
+            showWelcomeMessage("welcome to veil");
+        }
     }, []);
 
     const onSubmit = () => {
-        if (pin.length === 4) router.replace('/main');
+        if (Platform.OS === 'web') {
+            router.replace('/main');
+            return;
+        }
+
+        if (firstTimeUser) {
+            save('veil-pin', pin);
+            router.replace('/main');
+        } else {
+            getPin().then((veilPin) => {
+                if (pin === veilPin) {
+                    router.replace('/main');
+                } else {
+                    setIsError(true);
+                    setErrorMessage("Wrong pin entered.");
+                }
+            })
+        }
     };
 
+    const validateAndSetConfirmPin = (enteredPin: string) => {
+        setConfirmPin(enteredPin);
+
+        if (enteredPin.length === 4 && enteredPin !== pin) {
+            setIsError(true);
+            setErrorMessage('PINs do not match');
+        } else {
+            setErrorMessage('');
+            setIsError(false);
+        }
+    };
+
+    const handlePinChange = (enteredPin: string) => {
+        setPin(enteredPin);
+
+        if (isError && !firstTimeUser) {
+            setErrorMessage('');
+            setIsError(false);
+        }
+    }
+
+    const isButtonDisabled = firstTimeUser
+        ? pin !== confirmPin || pin.length < 4 || confirmPin.length < 4
+        : pin.length < 4;
+
     return (
-        <PaperProvider theme={theme}>
-            <SafeAreaView style={styles.container}>
-                <View style={styles.inner}>
-                    <VeilText variant="titleLarge" style={styles.header}>
-                        {displayed}
+        <View style={styles.container}>
+            <VeilText variant="titleLarge" style={styles.header}>
+                {displayed}
+            </VeilText>
+
+            <View style={styles.card}>
+                <VeilTextInput
+                    label={!firstTimeUser ? "4-digit PIN" : "Enter 4-digit PIN"}
+                    mode="flat"
+                    secureTextEntry={true}
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    value={pin}
+                    onChangeText={pin => {
+                        handlePinChange(pin)
+                    }}
+                    underlineColor="#444"
+                    activeUnderlineColor="#e8b4ac"
+                    style={styles.input}
+                    theme={{
+                        fonts: {bodyLarge: {...DarkTheme.fonts.bodyLarge, fontFamily: "MonaspaceRadonWideExtraLight"}},
+                    }}
+                />
+                {firstTimeUser && <VeilTextInput
+                    label="Confirm PIN"
+                    mode="flat"
+                    secureTextEntry={true}
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    value={confirmPin}
+                    onChangeText={pin => validateAndSetConfirmPin(pin)}
+                    underlineColor="#444"
+                    activeUnderlineColor="#e8b4ac"
+                    style={styles.input}
+                    theme={{
+                        fonts: {
+                            bodyLarge: {
+                                ...DarkTheme.fonts.bodyLarge,
+                                fontFamily: "MonaspaceRadonWideExtraLight"
+                            }
+                        },
+                    }}
+                />}
+                {isError &&
+                    <HelperText type={'error'} visible>
+                        {errorMessage}
+                    </HelperText>
+                }
+
+                <TouchableOpacity
+                    disabled={isButtonDisabled || isError}
+                    onPress={onSubmit}
+                    style={[
+                        styles.button,
+                        isButtonDisabled && {opacity: 0.5},
+                    ]}
+                >
+                    <VeilText variant="bodyMedium" style={styles.buttonText}>
+                        Submit
                     </VeilText>
+                </TouchableOpacity>
+            </View>
 
-                    <View style={styles.card}>
-                        <VeilTextInput
-                            label="4-digit PIN"
-                            mode="flat"
-                            secureTextEntry
-                            keyboardType="number-pad"
-                            maxLength={4}
-                            value={pin}
-                            onChangeText={setPin}
-                            underlineColor="#444"
-                            activeUnderlineColor="#e8b4ac"
-                            style={styles.input}
-                            theme={{
-                                fonts: { bodyLarge: { ...DarkTheme.fonts.bodyLarge, fontFamily: "MonaspaceRadonWideExtraLight" } },
-                            }}
-                        />
+            {firstTimeUser && <VeilText variant="bodyMedium" style={styles.footer}>
+                All sensitive data is stored locally on your device. Choose a unique PIN to protect your data from
+                prying eyes.
+            </VeilText>}
 
-                        <TouchableOpacity
-                            disabled={pin.length < 4}
-                            onPress={onSubmit}
-                            style={[
-                                styles.button,
-                                pin.length < 4 && { opacity: 0.5 },
-                            ]}
-                        >
-                            <VeilText variant="bodyMedium" style={styles.buttonText}>
-                                Submit
-                            </VeilText>
-                        </TouchableOpacity>
-                    </View>
-
-                    <VeilText variant="bodyMedium" style={styles.footer}>
-                        All sensitive data is stored locally on your device. Choose a unique PIN to protect your data from prying eyes.
-                    </VeilText>
-                </View>
-            </SafeAreaView>
-        </PaperProvider>
+            {/*<StarsBackground/>*/}
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: veilColors.background,
-    },
-    inner: {
-        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: veilSpacing.lg,
         gap: veilSpacing.xl,
+        backgroundColor: veilColors.background,
     },
     header: {
         color: veilColors.accent,

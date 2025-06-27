@@ -1,81 +1,17 @@
 import { useRouter } from 'expo-router';
-import React, {useEffect, useState} from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import React, {useEffect, useState, useMemo} from 'react';
+import {View, StyleSheet, TouchableOpacity, Platform} from 'react-native';
+import {ActivityIndicator, Portal} from 'react-native-paper';
 import {Calendar, CalendarActiveDateRange, CalendarTheme, toDateId} from "@marceloterreiro/flash-calendar";
-import dayjs from 'dayjs';
+import dayjs, {Dayjs} from 'dayjs';
 import { MaterialIcons } from '@expo/vector-icons';
 import { VeilText } from '@/components/VeilText';
 import { veilColors, veilFonts, veilSpacing } from '@/styles/VeilStyles';
 import { useSQLiteContext } from "expo-sqlite";
 import {getVeilData, TrackerEntry} from "@/utils/db";
 import {getDateRangesFromArray} from "@/utils/date";
+import {StarsBackground} from '@/components/StarsBackground';
 
-const flashTheme: CalendarTheme = {
-    rowMonth: {
-        content: {
-            textAlign: 'center',
-            color: veilColors.accent,
-            fontFamily: veilFonts.regular,
-        },
-    },
-    rowWeek: {
-        container: {
-            justifyContent: 'space-around',
-            borderBottomWidth: 2,
-            borderColor: veilColors.accent,
-            borderStyle: 'dashed',
-        },
-    },
-    itemWeekName: {
-        content: {
-            color: veilColors.text,
-            fontFamily: veilFonts.regular,
-        },
-    },
-    itemDayContainer: {
-        activeDayFiller: {
-            backgroundColor: 'transparent',
-        },
-    },
-    itemDay: {
-        idle: ({ isWeekend, isPressed }) => ({
-            content: {
-                color: isWeekend && !isPressed ? '#ffffff99' : veilColors.text,
-                fontFamily: veilFonts.regular,
-            },
-        }),
-        today: () => ({
-            content: {
-                color: veilColors.accent,
-                fontFamily: veilFonts.regular,
-            },
-        }),
-        active: ({ isStartOfRange, isEndOfRange, isDisabled, date }) => ({
-            container: {
-                backgroundColor: dayjs(date).isAfter(dayjs()) ? 'transparent' : veilColors.accent,
-                borderTopLeftRadius: isStartOfRange ? 4 : 0,
-                borderBottomLeftRadius: isStartOfRange ? 4 : 0,
-                borderTopRightRadius: isEndOfRange ? 4 : 0,
-                borderBottomRightRadius: isEndOfRange ? 4 : 0,
-                borderColor: veilColors.accent,
-                borderStyle: 'dashed',
-                borderWidth: dayjs(date).isAfter(dayjs()) ? 2 : 0,
-            },
-            content: {
-                color: isDisabled ? veilColors.disabledText : veilColors.text,
-                opacity: isDisabled ? 0.2 : 1,
-                fontFamily: veilFonts.regular,
-            },
-        }),
-        disabled: () => ({
-            content: {
-                fontFamily: veilFonts.regular,
-                color: veilColors.disabledText,
-                opacity: 0.2,
-            },
-        }),
-    },
-};
 
 const getDisabledDays = () => {
     const disabledDates = [];
@@ -91,51 +27,214 @@ export default function MainScreen() {
 
     const disabledDates = getDisabledDays();
     const db = useSQLiteContext();
+    const [loading, setLoading] = useState(true);
     const [veilData, setVeilData] = useState<TrackerEntry[]>([]);
     const [userTrackedCycle, setUserTrackedCycle] = useState<CalendarActiveDateRange[]>([]);
-    const [predictedCycle, setPredictedCycle] = useState<CalendarActiveDateRange>({
-        startId: '2025-07-05',
-        endId: '2025-07-11',
-    });
-    const [daysUntil, setDaysUntil] = useState(0); // placeholder
+    const [predictedCycle, setPredictedCycle] = useState<CalendarActiveDateRange>({});
+    const [daysUntil, setDaysUntil] = useState(-1);
 
     useEffect(() => {
         async function fetchData() {
             try {
                 const data = await getVeilData(db);
-                setVeilData(data); // Update state
+                setVeilData(data);
+                console.log('data', data);
+
+                if (data.length > 0) {
+                    const userInputtedDates = data.map(entry => entry.date);
+                    const dateRanges = getDateRangesFromArray(userInputtedDates)
+                    setUserTrackedCycle(dateRanges);
+
+                    if (!dateRanges.length) {
+                        return;
+                    }
+
+                    calculatePredictedCycle(dateRanges);
+                }
+                setLoading(false);
             } catch (e) {
                 console.error(e);
             }
         }
+
         fetchData();
     }, [db]);
 
-    useEffect(() => {
-        if (veilData.length > 0) {
-            const userInputtedDates = veilData.map(entry => entry.date);
-            setUserTrackedCycle(getDateRangesFromArray(userInputtedDates));
+    const isPredictedRange = (date: Date) => {
+        if (dayjs().isSame(date, 'day')) {
+            const entryForToday = veilData.find((entry) => entry.date === dayjs(date).format('YYYY-MM-DD'));
+
+            if (!entryForToday) {
+                return true;
+            }
         }
 
-        if (predictedCycle.startId && predictedCycle.endId) {
-            const diffInDays = Math.ceil(dayjs(predictedCycle.startId).diff(dayjs(), 'day', true));
-            if (diffInDays <= 0) {
-                setDaysUntil(diffInDays + 28); //TODO: put actual logic if cycle is already started
+        return dayjs().isBefore(date, 'day');
+    }
+
+    const flashTheme = useMemo<CalendarTheme>(() => ({
+        rowMonth: {
+            content: {
+                textAlign: 'center',
+                color: veilColors.accent,
+                fontFamily: veilFonts.regular,
+            },
+        },
+        rowWeek: {
+            container: {
+                justifyContent: 'space-around',
+                borderBottomWidth: 2,
+                borderColor: veilColors.accent,
+                borderStyle: 'dashed',
+            },
+        },
+        itemWeekName: {
+            content: {
+                color: veilColors.text,
+                fontFamily: veilFonts.regular,
+            },
+        },
+        itemDayContainer: {
+            activeDayFiller: {
+                backgroundColor: 'transparent',
+            },
+        },
+        itemDay: {
+            idle: ({isWeekend, isPressed}) => ({
+                content: {
+                    color: isWeekend && !isPressed ? '#ffffff99' : veilColors.text,
+                    fontFamily: veilFonts.regular,
+                },
+            }),
+            today: () => ({
+                content: {
+                    color: veilColors.accent,
+                    fontFamily: veilFonts.regular,
+                },
+            }),
+            active: ({isStartOfRange, isEndOfRange, isDisabled, date}) => ({
+                container: {
+                    backgroundColor: isPredictedRange(date) ? 'transparent' : veilColors.accent,
+                    borderTopLeftRadius: isStartOfRange ? 4 : 0,
+                    borderBottomLeftRadius: isStartOfRange ? 4 : 0,
+                    borderTopRightRadius: isEndOfRange ? 4 : 0,
+                    borderBottomRightRadius: isEndOfRange ? 4 : 0,
+                    borderColor: veilColors.accent,
+                    borderStyle: 'dashed',
+                    borderWidth: isPredictedRange(date) ? 2 : 0,
+                },
+                content: {
+                    color: isDisabled ? veilColors.disabledText : veilColors.text,
+                    opacity: isDisabled ? 0.2 : 1,
+                    fontFamily: veilFonts.regular,
+                },
+            }),
+            disabled: () => ({
+                content: {
+                    fontFamily: veilFonts.regular,
+                    color: veilColors.disabledText,
+                    opacity: 0.2,
+                },
+            }),
+        },
+    }), []);
+
+
+    const calculatePredictedCycle = (allDateRanges: CalendarActiveDateRange[]) => {
+        let avgCycleLength = 28;
+        let avgPeriodLength = 5;
+        const lastTrackedCycle: CalendarActiveDateRange | undefined = allDateRanges.at(-1);
+        const today = dayjs();
+        const pastDateRanges = allDateRanges.filter((dateRange) => {
+            const startDate = dayjs(dateRange.startId);
+            const endDate = dayjs(dateRange.endId);
+
+            return !today.isSame(startDate, 'week')
+                && !today.isSame(startDate, 'day')
+                && !today.isSame(endDate, 'week')
+                && !today.isSame(endDate, 'day');
+        });
+
+        if (pastDateRanges.length > 1) {
+            const cycleLengths = pastDateRanges
+                .slice(1)
+                .map((r, i) =>
+                    dayjs(r.startId).diff(pastDateRanges[i].startId, 'day')
+                );
+            const periodLengths = pastDateRanges.map(r =>
+                dayjs(r.endId).diff(r.startId, 'day') + 1
+            );
+
+            //Exponential smoothing parameters
+            const alphaCycle = 0.3;
+            const alphaPeriod = 0.35;
+
+            let smoothedCycle = cycleLengths[0];
+            for (let i = 1; i < cycleLengths.length; i++) {
+                smoothedCycle =
+                    alphaCycle * cycleLengths[i] +
+                    (1 - alphaCycle) * smoothedCycle;
             }
-            else {
-                setDaysUntil(diffInDays);
+
+            let smoothedPeriod = periodLengths[0];
+            for (let i = 1; i < periodLengths.length; i++) {
+                smoothedPeriod =
+                    alphaPeriod * periodLengths[i] +
+                    (1 - alphaPeriod) * smoothedPeriod;
             }
+
+            avgCycleLength = Math.round(smoothedCycle);
+            avgPeriodLength = Math.round(smoothedPeriod);
         }
-    }, [veilData]);
+
+        console.log("avg cycle: ", avgCycleLength);
+
+        let predictedStartDate = dayjs(pastDateRanges.at(-1)?.startId); // start at last period start
+        console.log(lastTrackedCycle);
+
+        while (today.isAfter(predictedStartDate, 'day')) { // should only reach if user hasn't provided accurate data recently
+            predictedStartDate = predictedStartDate.add(avgCycleLength, 'day');
+        }
+        if (predictedStartDate.isAfter(lastTrackedCycle?.startId, 'day') && predictedStartDate.isSame(lastTrackedCycle?.startId, 'week')) {
+            console.log("in here")
+            predictedStartDate = dayjs(lastTrackedCycle?.startId).add(avgCycleLength, 'day');
+        }
+
+        const predictedStart = predictedStartDate.format('YYYY-MM-DD');
+        const predictedEnd = dayjs(predictedStart)
+            .add(avgPeriodLength - 1, 'day')
+            .format('YYYY-MM-DD');
+
+
+        if (predictedStart && predictedEnd) {
+            setPredictedDays(predictedStart, predictedEnd, avgCycleLength);
+        }
+    }
+
+    const setPredictedDays = (predictedStart: string, predictedEnd: string, avgCycleLength: number) => {
+        const diffInDays = Math.ceil(
+            dayjs(predictedStart).diff(dayjs(), 'day', true)
+        );
+        if (diffInDays < 0) {
+            setDaysUntil(diffInDays + avgCycleLength);
+        } else {
+            setDaysUntil(diffInDays);
+            setPredictedCycle({
+                startId: predictedStart,
+                endId: predictedEnd,
+            });
+        }
+    }
 
 
     return (
         <View style={styles.container}>
+            {/*<StarsBackground/>*/}
             <VeilText variant="titleLarge" style={styles.headingText}>
-                next cycle in:
+                {daysUntil === 0 ? "next cycle is:" : "next cycle in:"}
             </VeilText>
             <VeilText variant="titleLarge" style={styles.countdownText}>
-                {daysUntil} days
+                {daysUntil !== -1 ? daysUntil === 0 ? "Today" : daysUntil + " days" : "--"}
             </VeilText>
 
             <View style={styles.calendarCard}>
@@ -149,12 +248,15 @@ export default function MainScreen() {
                     ]}
                     calendarRowHorizontalSpacing={12}
                     calendarRowVerticalSpacing={12}
-                    onCalendarDayPress={(day) =>
+                    onCalendarDayPress={(dateId) => {
+                        if (disabledDates.includes(dateId)) {
+                            return;
+                        }
                         router.push({
                             pathname: '/day-details',
-                            params: { selected_date: day },
+                            params: {selected_date: dateId},
                         })
-                    }
+                    }}
                     theme={flashTheme}
                 />
             </View>
@@ -171,6 +273,14 @@ export default function MainScreen() {
             >
                 <MaterialIcons name="add" size={32} color="#faf9f6" />
             </TouchableOpacity>
+
+            <Portal>
+                {loading && (
+                    <View style={styles.loadingOverlay}>
+                        <ActivityIndicator animating size="large"/>
+                    </View>
+                )}
+            </Portal>
         </View>
     );
 }
@@ -230,4 +340,10 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 4,
     },
+    loadingOverlay: {
+        ...StyleSheet.absoluteFillObject,           // fill entire screen
+        backgroundColor: 'rgba(0,0,0,0.4)',         // semi-transparent backdrop
+        alignItems: 'center',
+        justifyContent: 'center',
+    }
 });

@@ -18,6 +18,7 @@ export function VeilTextInput (props: TextInputProps){
         <TextInput
             {...props} style={[styles.defaultStyle, props.style]}
             textColor={veilColors.text}
+            contentStyle={styles.defaultStyle}
         />
     );
 }
