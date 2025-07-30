@@ -14,6 +14,7 @@ import {
     ScrollView,
     TouchableOpacity
 } from 'react-native';
+import {StarsBackground} from "@/components/StarsBackground";
 
 type Params = { selected_date: string };
 type DayViewGroup = {
@@ -113,6 +114,7 @@ export default function DayDetailsScreen() {
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+            <StarsBackground />
             <VeilText variant="titleLarge" style={styles.monthLabel}>
                 {date.format('MMMM')}
             </VeilText>

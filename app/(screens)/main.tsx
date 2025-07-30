@@ -63,12 +63,8 @@ export default function MainScreen() {
     const isPredictedRange = (date: Date) => {
         if (dayjs().isSame(date, 'day')) {
             const entryForToday = veilData.find((entry) => entry.date === dayjs(date).format('YYYY-MM-DD'));
-
-            if (!entryForToday) {
-                return true;
-            }
+            return !!entryForToday;
         }
-
         return dayjs().isBefore(date, 'day');
     }
 
@@ -229,7 +225,7 @@ export default function MainScreen() {
 
     return (
         <View style={styles.container}>
-            {/*<StarsBackground/>*/}
+            <StarsBackground/>
             <VeilText variant="titleLarge" style={styles.headingText}>
                 {daysUntil === 0 ? "next cycle is:" : "next cycle in:"}
             </VeilText>
@@ -292,6 +288,7 @@ const styles = StyleSheet.create({
         padding: veilSpacing.lg,
         paddingTop: 150,
         alignItems: 'center',
+        zIndex: 10
     },
     headingText: {
         color: veilColors.accent,

@@ -170,7 +170,7 @@ export default function SignInScreen() {
                 prying eyes.
             </VeilText>}
 
-            {/*<StarsBackground/>*/}
+            <StarsBackground/>
         </View>
     );
 }
@@ -183,6 +183,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: veilSpacing.lg,
         gap: veilSpacing.xl,
         backgroundColor: veilColors.background,
+        zIndex: 10
     },
     header: {
         color: veilColors.accent,
@@ -204,6 +205,7 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 3 },
         elevation: 4,
+        zIndex: 20
     },
     input: {
         backgroundColor: veilColors.surface,
